@@ -19,12 +19,17 @@ pipeline {
     post {
         success {
             withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_URL')]) {
-                sh "curl -X POST -H 'Content-type: application/json' --data '{\"text\":\"✅ *SUCCESS:* Announcement Board deployed perfectly to production!\"}' \$SLACK_URL"
+                // Triple quotes protect the formatting from Jenkins
+                sh '''
+                curl -X POST -H "Content-type: application/json" --data '{"text":"✅ *SUCCESS:* Announcement Board deployed perfectly to production!"}' "$SLACK_URL"
+                '''
             }
         }
         failure {
             withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_URL')]) {
-                sh "curl -X POST -H 'Content-type: application/json' --data '{\"text\":\"❌ *FAILED:* The pipeline crashed. Check Jenkins logs.\"}' \$SLACK_URL"
+                sh '''
+                curl -X POST -H "Content-type: application/json" --data '{"text":"❌ *FAILED:* The pipeline crashed. Check Jenkins logs."}' "$SLACK_URL"
+                '''
             }
         }
     }
