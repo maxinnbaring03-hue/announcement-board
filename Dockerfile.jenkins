@@ -1,0 +1,9 @@
+FROM jenkins/jenkins:lts
+
+# Switch to root to install software and bypass socket permissions
+USER root
+
+# Install the official Docker engine and Docker Compose inside Jenkins
+RUN curl -fsSL https://get.docker.com | sh
+
+# Keep it running as root so it has permission to talk to your Windows Docker engine

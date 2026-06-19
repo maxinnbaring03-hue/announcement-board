@@ -1,0 +1,17 @@
+services:
+  jenkins-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    container_name: jenkins-brain
+    ports:
+      - "9090:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      # This is the "Socket Bind" that gives Jenkins control over your host Docker
+      - //var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+
+volumes:
+  jenkins_data:

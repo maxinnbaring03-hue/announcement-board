@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -36,6 +37,7 @@ var db *sql.DB
 func main() {
 	var err error
 
+	// Connects to Supabase using the hidden key Docker injects from your .env file
 	connStr := os.Getenv("DATABASE_URL")
 	if connStr == "" {
 		log.Fatal("Error: DATABASE_URL environment variable is not set")
@@ -53,17 +55,43 @@ func main() {
 	}
 	fmt.Println("Successfully connected to Supabase cloud database!")
 
+	// ---------------------------------------------------------
+	// YOUR API ROUTES
+	// ---------------------------------------------------------
 	http.HandleFunc("/api/announcements", announcementsHandler)
 	http.HandleFunc("/api/register", createAdminHandler)
 	http.HandleFunc("/api/login", loginHandler)
 
+	// ---------------------------------------------------------
+	// SVELTE FRONTEND ROUTER (The Monolith Magic)
+	// ---------------------------------------------------------
+	staticDir := "./public"
+	fs := http.FileServer(http.Dir(staticDir))
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Join(staticDir, r.URL.Path)
+		_, err := os.Stat(path)
+
+		if os.IsNotExist(err) {
+			http.ServeFile(w, r, filepath.Join(staticDir, "index.html"))
+			return
+		} else if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fs.ServeHTTP(w, r)
+	})
+
+	// ---------------------------------------------------------
+	// START SERVER
+	// ---------------------------------------------------------
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func announcementsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	// Added DELETE to the allowed methods
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
@@ -116,16 +144,14 @@ func announcementsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. DELETING DATA (DELETE) - THE NEW ENGINE
+	// 3. DELETING DATA (DELETE)
 	if r.Method == http.MethodDelete {
-		// Grab the ID from the URL (e.g., /api/announcements?id=123)
 		postID := r.URL.Query().Get("id")
 		if postID == "" {
 			http.Error(w, "Missing post ID", http.StatusBadRequest)
 			return
 		}
 
-		// Tell Supabase to wipe it
 		_, err := db.Exec("DELETE FROM announcements WHERE id = $1", postID)
 		if err != nil {
 			http.Error(w, "Failed to delete post", http.StatusInternalServerError)

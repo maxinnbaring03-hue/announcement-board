@@ -1,0 +1,10 @@
+services:
+  announcement-board:
+    build: 
+      context: .
+    container_name: production-board
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "postgresql://postgres.edygayyapafqxuzytdil:P8QJAqbCqCX1jDqy@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
